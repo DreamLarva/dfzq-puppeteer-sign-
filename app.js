@@ -182,7 +182,9 @@ async function sign(signSignal) {
         }
         // 开始签退
         await signButtons[1].click();
-
+        page.once("requestfinished",async function(){
+            await browser.close();
+        });
         // 弹出框确定
         await waitAndClick(signFrame,"#signOutDialog > div > div:nth-child(3) > a:nth-child(1)");
         console.log("签退成功")
@@ -194,13 +196,15 @@ async function sign(signSignal) {
         await signButtons[0].click();
         await waitAndClick(signFrame,"#signInDialog > div > div:nth-child(3) > a:nth-child(1) > img");
 
+        page.once("requestfinished",async function(){
+            await browser.close();
+        });
         // 弹出框确定
         await (await signFrame.$("#signInDialog > div > div:nth-child(3) > a:nth-child(1) > img")).click();
         console.log("签到成功")
     }
 
     await page.waitFor(1000);
-    // await browser.close();
 
 }
 
