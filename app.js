@@ -13,6 +13,8 @@ main(section)
     .catch(console.log);
 
 
+
+
 async function main(section, date = moment()) {
     const {offset, act} = isInSignTime(section, date);
 
@@ -155,40 +157,59 @@ async function sign(signSignal) {
         await signFrame.waitForSelector("#signOutDialog > div > div:nth-child(1)");
 
         if (await isWriteReport(signFrame)) {
-            // 还没有填写日报
+            // 还没有填写周报
             console.log("开始填写日报");
-            // 切换到填写日报tab
+            // 切换到填写周报tab
             const reportFrame = await selectReportTab(page);
             // 填写今天的 周报
             await inputReport(reportFrame);
+            console.log("周报填写成功");
+
+            // 注册alert 事件
+            page.once("dialog", function (dialog) {
+                dialog.accept()
+            });
+
             // 保存
-            await (await reportFrame.$("body > div > div > h4 > a > img")).click();
+            await waitAndClick(reportFrame, "body > div > div > h4 > a > img");
+
+
             // 切回签到页面
             signFrame = await selectSignTab(page);
             signButtons = await getSignButtons(signFrame);
 
+
         }
         // 开始签退
         await signButtons[1].click();
-        await signFrame.waitForSelector("#signOutDialog > div > div:nth-child(1)");
+
+        // 弹出框确定
+        await waitAndClick(signFrame,"#signOutDialog > div > div:nth-child(3) > a:nth-child(1)");
+        console.log("签退成功")
 
 
     } else if (signSignal === STATUS.SIGN_IN) {
         // 签到情况
         // 开始签到
         await signButtons[0].click();
+        await waitAndClick(signFrame,"#signInDialog > div > div:nth-child(3) > a:nth-child(1) > img");
 
+        // 弹出框确定
+        await (await signFrame.$("#signInDialog > div > div:nth-child(3) > a:nth-child(1) > img")).click();
+        console.log("签到成功")
     }
 
-    // 弹出框确定
+    await page.waitFor(1000);
+    // await browser.close();
 
-    Promise.all([
-        await (await signFrame.$("#signOutDialog > div > div:nth-child(3) > a:nth-child(1)")).click(),
-        page.waitForNavigation({waitUntil: "networkidle0"})
-    ]);
+}
 
-    await browser.close();
-
+/**
+ * 等待页面渲染出按钮 就点击这个按钮
+ * */
+async function waitAndClick(frame, selector) {
+    await frame.waitForSelector(selector);
+    await (await frame.$(selector)).click()
 }
 
 /**
@@ -240,9 +261,9 @@ async function isWriteReport(page) {
 async function inputReport(frame) {
     const now = moment();
     const date = now.format("YYYY-MM-DD");
-    const day =now.day();
+    const day = now.day();
 
-    const {byDate,byDay}= require('./report');
+    const {byDate, byDay} = require('./report');
     let inputContent = byDate[date] || byDay[day] || "";
 
 
